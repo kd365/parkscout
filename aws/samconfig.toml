@@ -1,0 +1,71 @@
+# AWS SAM configuration file
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html
+
+version = 0.1
+
+[default]
+[default.global.parameters]
+stack_name = "parks-finder"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+confirm_changeset = true
+resolve_s3 = true
+s3_prefix = "parks-finder"
+region = "us-east-1"
+image_repositories = []
+
+[default.package.parameters]
+resolve_s3 = true
+
+[default.sync.parameters]
+watch = true
+
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+
+[default.local_start_lambda.parameters]
+warm_containers = "EAGER"
+
+# ============================================================
+# DEVELOPMENT ENVIRONMENT
+# ============================================================
+[dev]
+[dev.deploy.parameters]
+stack_name = "parks-finder-dev"
+s3_prefix = "parks-finder-dev"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "Environment=dev"
+
+# ============================================================
+# STAGING ENVIRONMENT
+# ============================================================
+[staging]
+[staging.deploy.parameters]
+stack_name = "parks-finder-staging"
+s3_prefix = "parks-finder-staging"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "Environment=staging"
+
+# ============================================================
+# PRODUCTION ENVIRONMENT
+# ============================================================
+[prod]
+[prod.deploy.parameters]
+stack_name = "parks-finder-prod"
+s3_prefix = "parks-finder-prod"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "Environment=prod"

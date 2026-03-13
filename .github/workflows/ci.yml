@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests (fast)
+        run: |
+          pytest tests/test_api.py tests/test_weather.py -v --tb=short
+
+      - name: Run RAG data quality tests
+        run: |
+          pytest tests/test_rag.py -v -m "not slow" --tb=short
+
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+
+      - name: Run Ruff linter
+        run: |
+          ruff check api/ tests/ --output-format=github
+
+  build-ios:
+    name: Build iOS App
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Build iOS app
+        working-directory: ios/ParksFinder
+        run: |
+          xcodebuild build \
+            -scheme ParksFinder \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.5' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+
+  rag-evaluation:
+    name: RAG Evaluation
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Check for API key
+        id: check-key
+        run: |
+          if [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "ANTHROPIC_API_KEY not available - skipping evaluation"
+          fi
+
+      - name: Checkout code
+        if: steps.check-key.outputs.has_key == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: steps.check-key.outputs.has_key == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        if: steps.check-key.outputs.has_key == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run RAG evaluation tests
+        if: steps.check-key.outputs.has_key == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          pytest tests/test_rag_evaluation.py -v -m evaluation --tb=short
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install security scanner
+        run: pip install bandit
+
+      - name: Run Bandit security scan
+        run: |
+          bandit -r api/ -ll -ii --format json --output bandit-report.json || true
+          bandit -r api/ -ll -ii
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-report
+          path: bandit-report.json

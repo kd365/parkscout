@@ -1,0 +1,12 @@
+# AWS SDK
+boto3>=1.34.0
+botocore>=1.34.0
+
+# HTTP client for Claude API
+httpx>=0.25.0
+
+# Redis client for ElastiCache
+redis>=5.0.0
+
+# PostgreSQL client for Aurora pgvector
+psycopg2-binary>=2.9.9

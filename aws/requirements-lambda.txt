@@ -1,0 +1,17 @@
+# Lambda-specific requirements
+# These are the minimal dependencies for running FastAPI on Lambda
+
+fastapi==0.109.0
+mangum==0.17.0
+pydantic==2.5.3
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+python-multipart==0.0.6
+httpx==0.26.0
+
+# LangChain for RAG (optional - can use external API)
+# langchain==0.1.0
+# langchain-community==0.0.12
+
+# Note: For production, consider using an external LLM API
+# instead of running Ollama locally, as Lambda has memory limits

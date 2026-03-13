@@ -1,0 +1,6 @@
+# AWS SDK (included in Lambda runtime, but specified for local testing)
+boto3>=1.34.0
+botocore>=1.34.0
+
+# Pydantic for request validation (will be used in task 0.3)
+pydantic>=2.5.0

@@ -1,0 +1,465 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		001 /* ParksFinderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101 /* ParksFinderApp.swift */; };
+		002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 102 /* ContentView.swift */; };
+		003 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 103 /* ChatView.swift */; };
+		004 /* ParksListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 104 /* ParksListView.swift */; };
+		005 /* ParkDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 105 /* ParkDetailView.swift */; };
+		006 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106 /* MapView.swift */; };
+		007 /* Park.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107 /* Park.swift */; };
+		008 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108 /* Message.swift */; };
+		009 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 109 /* APIService.swift */; };
+		010 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110 /* LocationService.swift */; };
+		011 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111 /* ChatViewModel.swift */; };
+		012 /* ParksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 112 /* ParksViewModel.swift */; };
+		013 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113 /* DesignSystem.swift */; };
+		014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 114 /* Assets.xcassets */; };
+		015 /* ParkPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115 /* ParkPickerView.swift */; };
+		016 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 116 /* PrivacyInfo.xcprivacy */; };
+		BB85B6F42F1B125100DE6CE3 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB85B6F32F1B125100DE6CE3 /* NetworkMonitor.swift */; };
+		BB85B6F62F1B12CD00DE6CE3 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB85B6F52F1B12CD00DE6CE3 /* Configuration.swift */; };
+		BB85B6F82F1B1B0E00DE6CE3 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB85B6F72F1B1B0E00DE6CE3 /* APIService.swift */; };
+		BB85B6FA2F1B1B1A00DE6CE3 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB85B6F92F1B1B1A00DE6CE3 /* AuthService.swift */; };
+		BB85B6FC2F1B254B00DE6CE3 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB85B6FB2F1B254B00DE6CE3 /* AuthView.swift */; };
+		BB85B6FE2F1B255800DE6CE3 /* Badge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB85B6FD2F1B255800DE6CE3 /* Badge.swift */; };
+		BB85B7002F1B257000DE6CE3 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB85B6FF2F1B257000DE6CE3 /* APIService.swift */; };
+		BB85B7022F1B258000DE6CE3 /* BadgeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB85B7012F1B258000DE6CE3 /* BadgeViews.swift */; };
+		BB8EFDD32F63835F003D0B43 /* DemoData.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8EFDD22F63835F003D0B43 /* DemoData.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		100 /* ParksFinder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParksFinder.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		101 /* ParksFinderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParksFinderApp.swift; sourceTree = "<group>"; };
+		102 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		103 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		104 /* ParksListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParksListView.swift; sourceTree = "<group>"; };
+		105 /* ParkDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkDetailView.swift; sourceTree = "<group>"; };
+		106 /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
+		107 /* Park.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Park.swift; sourceTree = "<group>"; };
+		108 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
+		109 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
+		110 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		111 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		112 /* ParksViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParksViewModel.swift; sourceTree = "<group>"; };
+		113 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		114 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		115 /* ParkPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkPickerView.swift; sourceTree = "<group>"; };
+		116 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		BB85B6F32F1B125100DE6CE3 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
+		BB85B6F52F1B12CD00DE6CE3 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Configuration.swift; path = ParksFinder/Configuration.swift; sourceTree = SOURCE_ROOT; };
+		BB85B6F72F1B1B0E00DE6CE3 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
+		BB85B6F92F1B1B1A00DE6CE3 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		BB85B6FB2F1B254B00DE6CE3 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		BB85B6FD2F1B255800DE6CE3 /* Badge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Badge.swift; sourceTree = "<group>"; };
+		BB85B6FF2F1B257000DE6CE3 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
+		BB85B7012F1B258000DE6CE3 /* BadgeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeViews.swift; sourceTree = "<group>"; };
+		BB8EFDD22F63835F003D0B43 /* DemoData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoData.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		200 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		300 = {
+			isa = PBXGroup;
+			children = (
+				301 /* ParksFinder */,
+				302 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		301 /* ParksFinder */ = {
+			isa = PBXGroup;
+			children = (
+				101 /* ParksFinderApp.swift */,
+				303 /* Views */,
+				304 /* Models */,
+				305 /* ViewModels */,
+				306 /* Services */,
+				307 /* Components */,
+				114 /* Assets.xcassets */,
+				116 /* PrivacyInfo.xcprivacy */,
+			);
+			path = ParksFinder;
+			sourceTree = "<group>";
+		};
+		302 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				100 /* ParksFinder.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		303 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				BB85B6FB2F1B254B00DE6CE3 /* AuthView.swift */,
+				102 /* ContentView.swift */,
+				103 /* ChatView.swift */,
+				104 /* ParksListView.swift */,
+				105 /* ParkDetailView.swift */,
+				106 /* MapView.swift */,
+				115 /* ParkPickerView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		304 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				BB8EFDD22F63835F003D0B43 /* DemoData.swift */,
+				BB85B6FD2F1B255800DE6CE3 /* Badge.swift */,
+				107 /* Park.swift */,
+				108 /* Message.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		305 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				111 /* ChatViewModel.swift */,
+				112 /* ParksViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		306 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				BB85B6FF2F1B257000DE6CE3 /* APIService.swift */,
+				BB85B6F92F1B1B1A00DE6CE3 /* AuthService.swift */,
+				BB85B6F72F1B1B0E00DE6CE3 /* APIService.swift */,
+				BB85B6F52F1B12CD00DE6CE3 /* Configuration.swift */,
+				BB85B6F32F1B125100DE6CE3 /* NetworkMonitor.swift */,
+				109 /* APIService.swift */,
+				110 /* LocationService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		307 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				BB85B7012F1B258000DE6CE3 /* BadgeViews.swift */,
+				113 /* DesignSystem.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		400 /* ParksFinder */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 403 /* Build configuration list for PBXNativeTarget "ParksFinder" */;
+			buildPhases = (
+				401 /* Sources */,
+				200 /* Frameworks */,
+				402 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ParksFinder;
+			productName = ParksFinder;
+			productReference = 100 /* ParksFinder.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		500 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					400 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 501 /* Build configuration list for PBXProject "ParksFinder" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 300;
+			productRefGroup = 302 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				400 /* ParksFinder */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		402 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				014 /* Assets.xcassets in Resources */,
+				016 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		401 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB85B6F82F1B1B0E00DE6CE3 /* APIService.swift in Sources */,
+				BB85B7002F1B257000DE6CE3 /* APIService.swift in Sources */,
+				BB85B6FE2F1B255800DE6CE3 /* Badge.swift in Sources */,
+				001 /* ParksFinderApp.swift in Sources */,
+				BB8EFDD32F63835F003D0B43 /* DemoData.swift in Sources */,
+				002 /* ContentView.swift in Sources */,
+				BB85B6FA2F1B1B1A00DE6CE3 /* AuthService.swift in Sources */,
+				003 /* ChatView.swift in Sources */,
+				004 /* ParksListView.swift in Sources */,
+				005 /* ParkDetailView.swift in Sources */,
+				006 /* MapView.swift in Sources */,
+				BB85B6FC2F1B254B00DE6CE3 /* AuthView.swift in Sources */,
+				BB85B6F62F1B12CD00DE6CE3 /* Configuration.swift in Sources */,
+				007 /* Park.swift in Sources */,
+				BB85B6F42F1B125100DE6CE3 /* NetworkMonitor.swift in Sources */,
+				008 /* Message.swift in Sources */,
+				009 /* APIService.swift in Sources */,
+				010 /* LocationService.swift in Sources */,
+				011 /* ChatViewModel.swift in Sources */,
+				BB85B7022F1B258000DE6CE3 /* BadgeViews.swift in Sources */,
+				012 /* ParksViewModel.swift in Sources */,
+				013 /* DesignSystem.swift in Sources */,
+				015 /* ParkPickerView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		600 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		601 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		602 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show nearby parks and calculate distances.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fairfaxparks.ParksFinder;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		603 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to show nearby parks and calculate distances.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fairfaxparks.ParksFinder;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		403 /* Build configuration list for PBXNativeTarget "ParksFinder" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				602 /* Debug */,
+				603 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		501 /* Build configuration list for PBXProject "ParksFinder" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				600 /* Debug */,
+				601 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 500 /* Project object */;
+}

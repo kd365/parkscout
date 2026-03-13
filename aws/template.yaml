@@ -1,0 +1,831 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Parks Finder API - Serverless backend for Fairfax County Parks discovery app
+
+# ============================================================
+# PARAMETERS
+# ============================================================
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Deployment environment
+
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    Description: Password for RDS PostgreSQL database
+
+  ClaudeApiKey:
+    Type: String
+    NoEcho: true
+    Description: Claude API key for LLM interactions
+
+  WeatherApiKey:
+    Type: String
+    NoEcho: true
+    Description: Weather API key for weather data
+
+  GooglePlacesApiKey:
+    Type: String
+    NoEcho: true
+    Description: Google Places API key for park photos
+
+  OllamaEndpoint:
+    Type: String
+    Default: ""
+    Description: Optional external Ollama endpoint (leave empty for local inference)
+
+# ============================================================
+# GLOBALS
+# ============================================================
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        DB_HOST: !GetAtt Database.Endpoint.Address
+        DB_NAME: parks_finder
+        DB_USER: parks_admin
+        DB_PASSWORD: !Ref DatabasePassword
+        OLLAMA_ENDPOINT: !Ref OllamaEndpoint
+
+# ============================================================
+# RESOURCES
+# ============================================================
+Resources:
+
+  # ----------------------------------------
+  # API GATEWAY
+  # ----------------------------------------
+  ParksFinderApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub parks-finder-api-${Environment}
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Session-Id'"
+        AllowOrigin: "'*'"
+      Auth:
+        DefaultAuthorizer: NONE
+
+  # ----------------------------------------
+  # LAMBDA FUNCTIONS
+  # ----------------------------------------
+
+  # Main API Handler (FastAPI via Mangum)
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub parks-finder-api-${Environment}
+      CodeUri: ../api/
+      Handler: lambda_handler.handler
+      Description: FastAPI backend for Parks Finder
+      Timeout: 60
+      MemorySize: 1024
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      Policies:
+        - VPCAccessPolicy: {}
+        - S3ReadPolicy:
+            BucketName: !Ref DataBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DatabaseSecret
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /{proxy+}
+            Method: ANY
+
+  # Health Check Function
+  HealthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub parks-finder-health-${Environment}
+      CodeUri: ../api/
+      Handler: health.handler
+      Description: Health check endpoint
+      Events:
+        HealthEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /health
+            Method: GET
+
+  # Auth Lambda - User registration, login, token management, subscription validation
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub parkscout-auth-${Environment}
+      CodeUri: ../lambda/auth/
+      Handler: handler.lambda_handler
+      Description: Authentication and user management with Apple Sign In
+      Timeout: 30
+      MemorySize: 512
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminInitiateAuth
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminGetUser
+                - cognito-idp:AdminUpdateUserAttributes
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        Register:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /auth/register
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        Login:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /auth/login
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        Refresh:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /auth/refresh
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        ValidateSubscription:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /auth/validate-subscription
+            Method: POST
+
+  # Parks Lambda - Park search, details, recommendations (optimized for performance)
+  ParksFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub parkscout-parks-${Environment}
+      CodeUri: ../lambda/parks/
+      Handler: handler.lambda_handler
+      Description: Park search and recommendations with vector search
+      Timeout: 30
+      MemorySize: 1024
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+          REVIEWS_TABLE: !Ref ReviewsTable
+          BADGES_TABLE: !Ref BadgesTable
+          AMENITY_VERIFICATIONS_TABLE: !Ref AmenityVerificationsTable
+          DB_SECRET_ARN: !Ref DatabaseSecret
+      Policies:
+        - VPCAccessPolicy: {}
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref ReviewsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref BadgesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref AmenityVerificationsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DatabaseSecret
+      Events:
+        Search:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /parks/search
+            Method: GET
+        Details:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /parks/{parkId}
+            Method: GET
+        Recommendations:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /parks/recommendations
+            Method: GET
+
+  # AI Chat Lambda - LLM interactions with provisioned concurrency
+  AIChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub parkscout-ai-chat-${Environment}
+      CodeUri: ../lambda/ai_chat/
+      Handler: handler.lambda_handler
+      Description: AI chat with Claude LLM and query caching
+      Timeout: 60
+      MemorySize: 1024
+      ReservedConcurrentExecutions: 5
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+          CLAUDE_API_SECRET_ARN: !Ref ClaudeApiSecret
+          WEATHER_API_SECRET_ARN: !Ref WeatherApiSecret
+          CACHE_CLUSTER_ENDPOINT: !GetAtt CacheCluster.RedisEndpoint.Address
+          DB_SECRET_ARN: !Ref DatabaseSecret
+      Policies:
+        - VPCAccessPolicy: {}
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                - !Ref ClaudeApiSecret
+                - !Ref WeatherApiSecret
+                - !Ref DatabaseSecret
+      Events:
+        Query:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /chat/query
+            Method: POST
+
+  # Photos Lambda - Photo upload, face blurring, content moderation
+  PhotosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub parkscout-photos-${Environment}
+      CodeUri: ../lambda/photos/
+      Handler: handler.lambda_handler
+      Description: Photo upload with face blurring and content moderation
+      Timeout: 60
+      MemorySize: 2048
+      Environment:
+        Variables:
+          PHOTOS_BUCKET: !Ref PhotosBucket
+          QUARANTINE_BUCKET: !Ref QuarantineBucket
+          REVIEWS_TABLE: !Ref ReviewsTable
+          GOOGLE_PLACES_API_SECRET_ARN: !Ref GooglePlacesApiSecret
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref PhotosBucket
+        - S3CrudPolicy:
+            BucketName: !Ref QuarantineBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReviewsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - rekognition:DetectFaces
+                - rekognition:DetectModerationLabels
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref GooglePlacesApiSecret
+      Events:
+        UploadUrl:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /photos/upload-url
+            Method: POST
+        PlacesPhotos:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /photos/places/{parkId}
+            Method: GET
+
+  # Badges Lambda - Badge awarding, rank progression, challenge tracking
+  BadgesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub parkscout-badges-${Environment}
+      CodeUri: ../lambda/badges/
+      Handler: handler.lambda_handler
+      Description: Merit badge system and Scout rank progression
+      Timeout: 30
+      MemorySize: 512
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+          BADGES_TABLE: !Ref BadgesTable
+          AMENITY_VERIFICATIONS_TABLE: !Ref AmenityVerificationsTable
+          CHALLENGES_TABLE: !Ref ChallengesTable
+          USER_CHALLENGE_PROGRESS_TABLE: !Ref UserChallengeProgressTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref BadgesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AmenityVerificationsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ChallengesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserChallengeProgressTable
+      Events:
+        VerifyAmenity:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /badges/verify
+            Method: POST
+        UserBadges:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /badges/user/{userId}
+            Method: GET
+        ParkBadges:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /badges/park/{parkId}
+            Method: GET
+        UserRank:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /rank/{userId}
+            Method: GET
+
+  # Webhook Lambda - App Store Server Notifications for subscription sync
+  WebhookFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub parkscout-webhook-${Environment}
+      CodeUri: ../lambda/webhook/
+      Handler: handler.lambda_handler
+      Description: App Store Server Notifications webhook handler
+      Timeout: 30
+      MemorySize: 512
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        AppleSubscription:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ParksFinderApi
+            Path: /webhooks/apple-subscription
+            Method: POST
+            Auth:
+              Authorizer: NONE
+
+  # ----------------------------------------
+  # VPC & NETWORKING
+  # ----------------------------------------
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub parks-finder-vpc-${Environment}
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub parks-finder-public-1-${Environment}
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub parks-finder-public-2-${Environment}
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub parks-finder-private-1-${Environment}
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub parks-finder-private-2-${Environment}
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub parks-finder-igw-${Environment}
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: !Sub parks-finder-nat-${Environment}
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub parks-finder-public-rt-${Environment}
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub parks-finder-private-rt-${Environment}
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+  # ----------------------------------------
+  # SECURITY GROUPS
+  # ----------------------------------------
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub parks-finder-lambda-sg-${Environment}
+      GroupDescription: Security group for Lambda functions
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub parks-finder-db-sg-${Environment}
+      GroupDescription: Security group for RDS database
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+  # ----------------------------------------
+  # RDS POSTGRESQL
+  # ----------------------------------------
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub parks-finder-db-subnet-${Environment}
+      DBSubnetGroupDescription: Subnet group for Parks Finder database
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+
+  DatabaseSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub parks-finder/db-credentials-${Environment}
+      Description: Database credentials for Parks Finder
+      SecretString: !Sub |
+        {
+          "username": "parks_admin",
+          "password": "${DatabasePassword}",
+          "host": "${Database.Endpoint.Address}",
+          "port": "5432",
+          "database": "parks_finder"
+        }
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub parks-finder-db-${Environment}
+      DBInstanceClass: db.t3.micro
+      Engine: postgres
+      EngineVersion: "15.4"
+      MasterUsername: parks_admin
+      MasterUserPassword: !Ref DatabasePassword
+      DBName: parks_finder
+      AllocatedStorage: 20
+      MaxAllocatedStorage: 100
+      StorageType: gp3
+      VPCSecurityGroups:
+        - !Ref DatabaseSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      PubliclyAccessible: false
+      BackupRetentionPeriod: 7
+      MultiAZ: false
+      DeletionProtection: false
+      Tags:
+        - Key: Name
+          Value: !Sub parks-finder-db-${Environment}
+
+  # ----------------------------------------
+  # S3 BUCKETS
+  # ----------------------------------------
+  DataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub parks-finder-data-${AWS::AccountId}-${Environment}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 30
+
+  # Photos Bucket - Blurred, safe-for-display photos
+  PhotosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub parkscout-photos-${AWS::AccountId}-${Environment}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+            AllowedHeaders:
+              - '*'
+            MaxAge: 3600
+
+  # Quarantine Bucket - Original photos before blurring
+  QuarantineBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub parkscout-quarantine-${AWS::AccountId}-${Environment}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfter90Days
+            Status: Enabled
+            ExpirationInDays: 90
+
+  # ----------------------------------------
+  # COGNITO USER POOL
+  # ----------------------------------------
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub parks-finder-users-${Environment}
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Schema:
+        - Name: email
+          Required: true
+          Mutable: true
+        - Name: name
+          Required: false
+          Mutable: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub parks-finder-app-${Environment}
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      SupportedIdentityProviders:
+        - COGNITO
+      CallbackURLs:
+        - parksfinder://callback
+      LogoutURLs:
+        - parksfinder://logout
+
+  # Apple Sign-In Identity Provider (uncomment when ready)
+  # AppleIdentityProvider:
+  #   Type: AWS::Cognito::UserPoolIdentityProvider
+  #   Properties:
+  #     UserPoolId: !Ref UserPool
+  #     ProviderName: SignInWithApple
+  #     ProviderType: SignInWithApple
+  #     ProviderDetails:
+  #       client_id: com.fairfaxparks.ParksFinder
+  #       team_id: YOUR_TEAM_ID
+  #       key_id: YOUR_KEY_ID
+  #       private_key: YOUR_PRIVATE_KEY
+  #     AttributeMapping:
+  #       email: email
+  #       name: name
+
+# ============================================================
+# OUTPUTS
+# ============================================================
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub https://${ParksFinderApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiEndpoint
+
+  DatabaseEndpoint:
+    Description: RDS PostgreSQL endpoint
+    Value: !GetAtt Database.Endpoint.Address
+    Export:
+      Name: !Sub ${AWS::StackName}-DatabaseEndpoint
+
+  DataBucketName:
+    Description: S3 bucket for park data
+    Value: !Ref DataBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-DataBucket
+
+  PhotosBucketName:
+    Description: S3 bucket for blurred photos
+    Value: !Ref PhotosBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-PhotosBucket
+
+  QuarantineBucketName:
+    Description: S3 bucket for original photos (quarantine)
+    Value: !Ref QuarantineBucket
+    Export:
+      Name: !Sub ${AWS::StackName}-QuarantineBucket
+
+  CloudFrontDomain:
+    Description: CloudFront distribution domain for photos
+    Value: !GetAtt PhotosDistribution.DomainName
+    Export:
+      Name: !Sub ${AWS::StackName}-CloudFrontDomain
+
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref UserPool
+    Export:
+      Name: !Sub ${AWS::StackName}-UserPoolId
+
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref UserPoolClient
+    Export:
+      Name: !Sub ${AWS::StackName}-UserPoolClientId
+
+  UsersTableName:
+    Description: DynamoDB Users Table
+    Value: !Ref UsersTable
+    Export:
+      Name: !Sub ${AWS::StackName}-UsersTable
+
+  ReviewsTableName:
+    Description: DynamoDB Reviews Table
+    Value: !Ref ReviewsTable
+    Export:
+      Name: !Sub ${AWS::StackName}-ReviewsTable
+
+  BadgesTableName:
+    Description: DynamoDB Badges Table
+    Value: !Ref BadgesTable
+    Export:
+      Name: !Sub ${AWS::StackName}-BadgesTable
+
+  CacheEndpoint:
+    Description: ElastiCache Redis endpoint
+    Value: !GetAtt CacheCluster.RedisEndpoint.Address
+    Export:
+      Name: !Sub ${AWS::StackName}-CacheEndpoint
+
+  VpcId:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
