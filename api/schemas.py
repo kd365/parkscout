@@ -42,6 +42,8 @@ class QueryResponse(BaseModel):
     parks_mentioned: List[ParkMention] = []
     response_time_seconds: float
     conversation_turn: int = 1
+    confidence: Optional[float] = None
+    retrieval_attempts: int = 1
 
     class Config:
         json_schema_extra = {
@@ -196,6 +198,8 @@ class ParkBadgeSchema(BaseModel):
     confirmation_count: int
     is_earned: bool
     earned_at: Optional[datetime] = None
+    status: str = "earned"  # "earned", "disputed", "lost"
+    negative_count: int = 0
 
     class Config:
         from_attributes = True
@@ -231,6 +235,7 @@ class ParkBadgesResponse(BaseModel):
     park_name: str
     earned_badges: List[ParkBadgeSchema]
     pending_badges: List[ParkBadgeSchema]  # Badges with some confirmations but not earned
+    disputed_badges: List[ParkBadgeSchema] = []  # Badges under dispute from contradicting reviews
 
 
 class UserProfileWithTier(BaseModel):

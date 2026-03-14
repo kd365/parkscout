@@ -138,7 +138,7 @@ jobs:
 
       - name: Run Bandit security scan
         run: |
-          bandit -r api/ -ll -ii --format json --output bandit-report.json || true
+          bandit -r api/ -ll -ii --format json --output bandit-report.json
           bandit -r api/ -ll -ii
 
       - name: Upload security report

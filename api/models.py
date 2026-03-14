@@ -568,6 +568,25 @@ BADGE_DEFINITIONS = {
     },
 }
 
+# Badge-to-rating mapping for contradiction detection
+# Maps badge_id to the review rating field and the threshold below which
+# a review is considered contradicting (negative confirmation)
+BADGE_RATING_MAP = {
+    "solar_shield": {"field": "shade_rating", "negative_threshold": 2},
+    "golden_throne": {"field": "restroom_cleanliness_rating", "negative_threshold": 2},
+    "smooth_sailing": {"field": "trail_quality_rating", "negative_threshold": 2},
+    "the_fortress": {"field": "containment_rating", "negative_threshold": 2},
+    "tiny_explorer": {"field": "playground_quality_rating", "negative_threshold": 2},
+    "feast_grounds": {"field": "overall_rating", "negative_threshold": 2},
+    "splash_zone": {"field": "overall_rating", "negative_threshold": 2},
+    "paws_welcome": {"field": "overall_rating", "negative_threshold": 2},
+}
+
+# Number of negative confirmations within the dispute window to trigger dispute
+DISPUTE_NEGATIVE_THRESHOLD = 2
+# Days within which negative confirmations are counted
+DISPUTE_WINDOW_DAYS = 90
+
 # User tier definitions
 USER_TIERS = {
     "tenderfoot": {"min_reviews": 0, "max_reviews": 4, "name": "Tenderfoot", "icon": "leaf"},
@@ -589,6 +608,7 @@ class ParkBadge(Base):
     """
     Badges earned by parks through user confirmations.
     A badge is earned when threshold confirmations are reached.
+    Badge lifecycle: earned → disputed → lost → re-earned.
     """
     __tablename__ = "park_badges"
 
@@ -604,6 +624,14 @@ class ParkBadge(Base):
 
     # Is the badge currently active (earned)
     is_earned = Column(Boolean, default=False)
+
+    # Badge status: "earned", "disputed", "lost"
+    # disputed = negative reviews accumulating, badge at risk
+    # lost = too many contradicting reviews, badge revoked
+    status = Column(String(20), default="earned")
+
+    # Count of negative confirmations (contradicting reviews)
+    negative_count = Column(Integer, default=0)
 
 
 class BadgeConfirmation(Base):
@@ -623,6 +651,10 @@ class BadgeConfirmation(Base):
 
     # Optional: linked to a review
     review_id = Column(Integer, ForeignKey("park_reviews.id"), nullable=True)
+
+    # Whether this is a negative confirmation (contradicting the badge)
+    # e.g., a low restroom rating contradicts a "Golden Throne" badge
+    is_negative = Column(Boolean, default=False)
 
     user = relationship("User")
     review = relationship("ParkReview")

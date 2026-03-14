@@ -360,6 +360,7 @@ def seed_database():
                     badge_id=badge_id,
                     confirmed_at=review.created_at,
                     review_id=review.id,
+                    is_negative=False,
                 )
                 session.add(confirmation)
                 key = (park_name, badge_id)
@@ -382,6 +383,8 @@ def seed_database():
             confirmation_count=count,
             is_earned=is_earned,
             earned_at=datetime.utcnow() - timedelta(days=random.randint(1, 30)) if is_earned else None,
+            status="earned" if is_earned else "earned",
+            negative_count=0,
         )
         session.add(badge)
         status = "EARNED" if is_earned else f"pending ({count}/{threshold})"

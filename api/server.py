@@ -18,7 +18,7 @@ import time
 import uuid
 import hashlib
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 
@@ -37,7 +37,8 @@ from langchain_core.output_parsers import StrOutputParser
 from .models import (
     init_db, get_session, User, SavedPark, Conversation, Message, SearchHistory,
     ParkReview, ParkAggregateRating, ParkBadge, BadgeConfirmation,
-    BADGE_DEFINITIONS, USER_TIERS, get_user_tier
+    BADGE_DEFINITIONS, BADGE_RATING_MAP, DISPUTE_NEGATIVE_THRESHOLD, DISPUTE_WINDOW_DAYS,
+    USER_TIERS, get_user_tier
 )
 from .schemas import (
     QueryRequest, QueryResponse, ParkMention,
@@ -110,7 +111,13 @@ db_engine = None
 
 # RAG components (initialized on startup)
 retriever = None
+chroma_store = None  # Keep reference for expanded retrieval in Self-Critic
 llm = None
+
+# Self-Critic configuration
+CONFIDENCE_THRESHOLD = 0.7
+MAX_RETRIEVAL_ATTEMPTS = 2
+EXPANDED_K = 8  # Double the retrieval count on retry
 
 
 # ============================================================
@@ -120,7 +127,7 @@ llm = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize resources on startup."""
-    global db_engine, retriever, llm
+    global db_engine, retriever, chroma_store, llm
 
     print("Initializing Parks Finder API...")
 
@@ -133,6 +140,7 @@ async def lifespan(app: FastAPI):
     print(f"  Loading ChromaDB from: {DB_PATH}")
     embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
     chroma_db = Chroma(persist_directory=DB_PATH, embedding_function=embeddings)
+    chroma_store = chroma_db
     retriever = chroma_db.as_retriever(search_kwargs={"k": 4})
 
     print(f"  Loading LLM: {LLM_MODEL}")
@@ -186,10 +194,53 @@ app.add_middleware(
 # RAG QUERY ENDPOINTS
 # ============================================================
 
+def self_critic_evaluate(question: str, answer: str, context: str) -> float:
+    """
+    Self-Critic Agent: Evaluates the generator's response confidence.
+
+    Returns a confidence score (0.0 to 1.0). If below CONFIDENCE_THRESHOLD,
+    the pipeline triggers re-retrieval with expanded context.
+    """
+    critic_prompt = ChatPromptTemplate.from_messages([
+        ("system", (
+            "You are a quality critic for a park recommendation system. "
+            "Evaluate whether the answer adequately addresses the user's question "
+            "using the provided context. Consider: Does it recommend specific parks? "
+            "Does it address the specific needs mentioned (age, amenities, location)? "
+            "Is the information grounded in the context provided? "
+            "Respond with ONLY a single decimal number between 0.0 and 1.0."
+        )),
+        ("user", (
+            "Question: {question}\n\n"
+            "Context provided:\n{context}\n\n"
+            "Generated answer: {answer}\n\n"
+            "Confidence score (0.0 to 1.0):"
+        )),
+    ])
+    chain = critic_prompt | llm | StrOutputParser()
+    result = chain.invoke({"question": question, "context": context, "answer": answer})
+
+    # Parse the score
+    for token in result.strip().replace("\n", " ").split():
+        token = token.strip(".,;:()")
+        try:
+            score = float(token)
+            if 0.0 <= score <= 1.0:
+                return score
+        except ValueError:
+            continue
+    return 0.5  # Default if parsing fails
+
+
 @app.post("/query", response_model=QueryResponse, tags=["AI"])
 async def query_parks(request: QueryRequest, db: Session = Depends(get_db)):
     """
     Ask the AI about Fairfax County parks.
+
+    Uses a multi-agent pipeline:
+    1. Generator Agent — retrieves context and generates recommendations
+    2. Self-Critic Agent — confidence-checks the answer, triggers re-retrieval if < 0.7
+    3. Evaluator Agent — LLM-as-Judge scoring (runs in CI/CD via test suite)
 
     Supports conversation memory - include session_id for follow-ups.
     Weather context is automatically included to provide relevant recommendations.
@@ -224,14 +275,12 @@ async def query_parks(request: QueryRequest, db: Session = Depends(get_db)):
         print(f"Weather fetch failed (non-blocking): {e}")
         weather_context = "Weather data unavailable."
 
-    # Get relevant context
+    # ── Agent 1: Generator ──────────────────────────────────────
+    # Retrieve relevant context and generate initial response
     docs = retriever.invoke(request.question)
     context = "\n\n---\n\n".join(doc.page_content for doc in docs)
-
-    # Get badge data for parks mentioned in context
     badge_context = get_badge_context_for_rag(db, context)
 
-    # Build prompt with weather and badge context
     prompt = ChatPromptTemplate.from_messages([
         ("system", SYSTEM_PROMPT),
         ("user", f"""Previous conversation:
@@ -247,9 +296,57 @@ Relevant parks data:
 Current question: {request.question}""")
     ])
 
-    # Generate response
     chain = prompt | llm | StrOutputParser()
     answer = chain.invoke({})
+
+    # ── Agent 2: Self-Critic ────────────────────────────────────
+    # Evaluate confidence and re-retrieve with expanded context if needed
+    retrieval_attempts = 1
+    confidence = 0.5  # Default
+
+    try:
+        confidence = self_critic_evaluate(request.question, answer, context)
+        print(f"[Self-Critic] Confidence: {confidence:.2f} (threshold: {CONFIDENCE_THRESHOLD})")
+
+        if confidence < CONFIDENCE_THRESHOLD and chroma_store is not None:
+            print(f"[Self-Critic] Below threshold — re-retrieving with k={EXPANDED_K}")
+            retrieval_attempts = 2
+
+            # Expanded retrieval with more documents
+            expanded_retriever = chroma_store.as_retriever(search_kwargs={"k": EXPANDED_K})
+            docs = expanded_retriever.invoke(request.question)
+            context = "\n\n---\n\n".join(doc.page_content for doc in docs)
+            badge_context = get_badge_context_for_rag(db, context)
+
+            # Regenerate with richer context
+            retry_prompt = ChatPromptTemplate.from_messages([
+                ("system", SYSTEM_PROMPT),
+                ("user", f"""Previous conversation:
+{history_str}
+
+{weather_context}
+
+{badge_context}
+
+Relevant parks data (expanded search):
+{context}
+
+Current question: {request.question}
+
+IMPORTANT: The previous answer was not confident enough. Please provide a more thorough response
+with specific park recommendations that directly address the user's needs.""")
+            ])
+
+            chain = retry_prompt | llm | StrOutputParser()
+            answer = chain.invoke({})
+
+            # Re-evaluate confidence
+            confidence = self_critic_evaluate(request.question, answer, context)
+            print(f"[Self-Critic] Retry confidence: {confidence:.2f}")
+
+    except Exception as e:
+        print(f"[Self-Critic] Evaluation failed (non-blocking): {e}")
+        # Continue with original answer if critic fails
 
     response_time = time.time() - start_time
 
@@ -270,7 +367,9 @@ Current question: {request.question}""")
         session_id=session_id,
         parks_mentioned=parks_mentioned,
         response_time_seconds=round(response_time, 2),
-        conversation_turn=len(history) // 2
+        conversation_turn=len(history) // 2,
+        confidence=round(confidence, 2),
+        retrieval_attempts=retrieval_attempts
     )
 
 
@@ -693,11 +792,13 @@ async def get_park_badges(park_name: str, db: Session = Depends(get_db)):
 
     earned = []
     pending = []
+    disputed = []
 
     for badge in badges:
         if badge.badge_id not in BADGE_DEFINITIONS:
             continue
         badge_def = BADGE_DEFINITIONS[badge.badge_id]
+        status = getattr(badge, 'status', 'earned') or 'earned'
         schema = ParkBadgeSchema(
             badge_id=badge.badge_id,
             name=badge_def["name"],
@@ -706,9 +807,16 @@ async def get_park_badges(park_name: str, db: Session = Depends(get_db)):
             category=badge_def["category"],
             confirmation_count=badge.confirmation_count,
             is_earned=badge.is_earned,
-            earned_at=badge.earned_at if badge.is_earned else None
+            earned_at=badge.earned_at if badge.is_earned else None,
+            status=status,
+            negative_count=badge.negative_count or 0
         )
-        if badge.is_earned:
+        if status == "disputed":
+            disputed.append(schema)
+        elif status == "lost":
+            # Lost badges go to disputed list with their status for visibility
+            disputed.append(schema)
+        elif badge.is_earned:
             earned.append(schema)
         elif badge.confirmation_count > 0:
             pending.append(schema)
@@ -716,7 +824,8 @@ async def get_park_badges(park_name: str, db: Session = Depends(get_db)):
     return ParkBadgesResponse(
         park_name=park_name,
         earned_badges=earned,
-        pending_badges=pending
+        pending_badges=pending,
+        disputed_badges=disputed
     )
 
 
@@ -999,6 +1108,9 @@ async def create_review(
     # Update aggregate ratings
     update_park_aggregate_ratings(db, park_name)
 
+    # Check for badge contradictions and trigger disputes if needed
+    check_badge_disputes(db, park_name, db_review)
+
     return ReviewResponse(
         id=db_review.id,
         park_name=db_review.park_name,
@@ -1101,6 +1213,69 @@ async def mark_review_helpful(review_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Marked as helpful", "helpful_count": review.helpful_count}
+
+
+def check_badge_disputes(db: Session, park_name: str, review: ParkReview):
+    """
+    Check if a new review contradicts any earned badges for this park.
+    If a review rates a badge-relevant quality low (below negative_threshold),
+    it creates a negative confirmation. When enough negatives accumulate
+    within the dispute window, the badge status changes to "disputed" or "lost".
+    """
+    # Get all earned badges for this park
+    earned_badges = db.query(ParkBadge).filter(
+        ParkBadge.park_name == park_name,
+        ParkBadge.is_earned == True,  # noqa: E712
+        ParkBadge.status.in_(["earned", "disputed"])
+    ).all()
+
+    if not earned_badges:
+        return
+
+    for badge in earned_badges:
+        mapping = BADGE_RATING_MAP.get(badge.badge_id)
+        if not mapping:
+            continue
+
+        # Get the relevant rating from the review
+        rating_value = getattr(review, mapping["field"], None)
+        if rating_value is None:
+            continue
+
+        # Check if this review contradicts the badge
+        if rating_value <= mapping["negative_threshold"]:
+            # Create a negative confirmation
+            neg_confirmation = BadgeConfirmation(
+                user_id=review.user_id,
+                park_name=park_name,
+                badge_id=badge.badge_id,
+                review_id=review.id,
+                is_negative=True,
+                confirmed_at=datetime.utcnow()
+            )
+            db.add(neg_confirmation)
+            badge.negative_count = (badge.negative_count or 0) + 1
+
+            # Count recent negative confirmations within the dispute window
+            window_start = datetime.utcnow() - timedelta(days=DISPUTE_WINDOW_DAYS)
+            recent_negatives = db.query(BadgeConfirmation).filter(
+                BadgeConfirmation.park_name == park_name,
+                BadgeConfirmation.badge_id == badge.badge_id,
+                BadgeConfirmation.is_negative == True,  # noqa: E712
+                BadgeConfirmation.confirmed_at >= window_start
+            ).count()
+            # Add 1 for the one we just created (not yet flushed)
+            recent_negatives += 1
+
+            if recent_negatives >= DISPUTE_NEGATIVE_THRESHOLD:
+                if badge.status == "earned":
+                    badge.status = "disputed"
+                elif badge.status == "disputed" and recent_negatives >= DISPUTE_NEGATIVE_THRESHOLD * 2:
+                    # Double the threshold to go from disputed to lost
+                    badge.status = "lost"
+                    badge.is_earned = False
+
+    db.commit()
 
 
 def update_park_aggregate_ratings(db: Session, park_name: str):

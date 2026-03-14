@@ -125,7 +125,7 @@ FastAPI Backend / API Gateway
 
 **Watch the full demo walkthrough:**
 
-[![ParkScout Demo Video](https://img.shields.io/badge/▶_Watch_Demo-ParkScout-green?style=for-the-badge&logo=youtube)](VIDEO_URL)
+[![ParkScout Demo Video](https://img.shields.io/badge/▶_Watch_Demo-ParkScout-green?style=for-the-badge&logo=youtube)](https://www.youtube.com/watch?v=wCID797d7HI)
 
 <!-- If embedding directly (e.g., on a platform that supports HTML video): -->
 <!-- <video src="VIDEO_URL" controls width="100%"></video> -->
@@ -152,7 +152,7 @@ The demo walks through the complete ParkScout experience:
 
 ---
 
-<!-- GitHub: [Add your repo link here] -->
+**GitHub:** [github.com/kd365/parkscout](https://github.com/kd365/parkscout)
 
 #aideas-2025 #daily-life-enhancement #NAMER
 
