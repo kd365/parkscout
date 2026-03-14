@@ -121,7 +121,7 @@ jobs:
           pytest tests/test_rag_evaluation.py -v -m evaluation --tb=short
 
   security:
-    name: Security Scan
+    name: Security Scan (SAST)
     runs-on: ubuntu-latest
 
     steps:
@@ -147,3 +147,41 @@ jobs:
         with:
           name: security-report
           path: bandit-report.json
+
+  ai-security-review:
+    name: AI Security Review
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for API key
+        id: check-key
+        run: |
+          if [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ]; then
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "ANTHROPIC_API_KEY not available - skipping AI security review"
+          fi
+
+      - name: Checkout code
+        if: steps.check-key.outputs.has_key == 'true'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        if: steps.check-key.outputs.has_key == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        if: steps.check-key.outputs.has_key == 'true'
+        run: pip install anthropic
+
+      - name: Run AI security review on diff
+        if: steps.check-key.outputs.has_key == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: python scripts/ai_security_review.py
