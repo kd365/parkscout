@@ -11,7 +11,6 @@ Tests cover:
 7. Weather endpoint
 """
 import pytest
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -282,7 +281,7 @@ class TestBadgeSystem:
         db_session.commit()
 
         assert badge.id is not None
-        assert badge.is_earned == False
+        assert not badge.is_earned
         assert badge.confirmation_count == 0
 
     def test_badge_earned_when_threshold_reached(self, db_session, sample_user):
@@ -317,7 +316,7 @@ class TestBadgeSystem:
         db_session.commit()
 
         assert badge.confirmation_count == 3
-        assert badge.is_earned == True
+        assert badge.is_earned
         assert badge.earned_at is not None
 
     def test_badge_confirmation_unique_per_user(self, db_session, sample_user):

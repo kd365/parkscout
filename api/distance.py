@@ -10,7 +10,7 @@ Distance Categories:
 - "Driveable" = 15+ min drive
 """
 import math
-from typing import Optional, Tuple, Dict, Any
+from typing import Dict, Any
 
 # Average driving speed in Fairfax County (mph)
 # Accounts for traffic lights, suburban roads

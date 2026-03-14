@@ -19,7 +19,7 @@ import uuid
 import hashlib
 import secrets
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Depends, Query
@@ -35,8 +35,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 # Local imports
 from .models import (
-    init_db, get_session, User, SavedPark, Conversation, Message, SearchHistory,
-    ParkReview, ParkAggregateRating, ParkBadge, BadgeConfirmation,
+    init_db, get_session, User, SavedPark, Conversation, Message, ParkReview, ParkAggregateRating, ParkBadge, BadgeConfirmation,
     BADGE_DEFINITIONS, BADGE_RATING_MAP, DISPUTE_NEGATIVE_THRESHOLD, DISPUTE_WINDOW_DAYS,
     USER_TIERS, get_user_tier
 )
@@ -45,10 +44,10 @@ from .schemas import (
     UserCreate, UserResponse, UserUpdate,
     RegisterRequest, LoginRequest, AuthResponse,
     SaveParkRequest, SavedParkResponse,
-    ParkSchema, ParkListResponse, ParkFilters, ParkAmenities,
+    ParkSchema, ParkListResponse, ParkAmenities,
     ConversationSummary, ConversationDetail, MessageSchema,
     ReviewCreate, ReviewResponse, ReviewListResponse, ParkTagsResponse,
-    MarkReviewHelpfulRequest, PARK_TAGS, WeatherResponse,
+    PARK_TAGS, WeatherResponse,
     UserTier, BadgeDefinition, ParkBadgeSchema, BadgeConfirmRequest,
     BadgeConfirmResponse, ParkBadgesResponse, UserProfileWithTier
 )
@@ -380,7 +379,7 @@ def get_badge_context_for_rag(db: Session, parks_context: str) -> str:
     """
     try:
         # Get all earned badges
-        earned_badges = db.query(ParkBadge).filter(ParkBadge.is_earned == True).all()
+        earned_badges = db.query(ParkBadge).filter(ParkBadge.is_earned == True).all()  # noqa: E712
 
         if not earned_badges:
             return "PARKSCOUT VERIFIED BADGES: No badges earned yet."
@@ -421,7 +420,7 @@ def extract_park_mentions(text: str) -> List[ParkMention]:
     try:
         with open(DATA_PATH, 'r') as f:
             parks = json.load(f)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError):
         return []
 
     text_lower = text.lower()
@@ -1398,15 +1397,15 @@ def update_park_aggregate_ratings(db: Session, park_name: str):
 
             # Logistics
             if obs.get("logistics"):
-                l = obs["logistics"]
-                if l.get("stroller_path_paved") is not None:
-                    stroller_friendly.append(l["stroller_path_paved"])
-                if l.get("parking_to_playground_distance"):
-                    parking_distances.append(l["parking_to_playground_distance"])
-                if l.get("quick_exit_possible") is not None:
-                    quick_exits.append(l["quick_exit_possible"])
-                if l.get("notes"):
-                    logistics_notes.append(l["notes"])
+                logistics = obs["logistics"]
+                if logistics.get("stroller_path_paved") is not None:
+                    stroller_friendly.append(logistics["stroller_path_paved"])
+                if logistics.get("parking_to_playground_distance"):
+                    parking_distances.append(logistics["parking_to_playground_distance"])
+                if logistics.get("quick_exit_possible") is not None:
+                    quick_exits.append(logistics["quick_exit_possible"])
+                if logistics.get("notes"):
+                    logistics_notes.append(logistics["notes"])
 
             # Restrooms
             if obs.get("restrooms"):

@@ -103,6 +103,7 @@ class TestDataQuality:
         for park in parks_data:
             assert park.get("park_name"), "Found park with empty name"
 
+    @pytest.mark.slow
     def test_database_exists(self):
         """ChromaDB should exist after ingest."""
         assert DB_PATH.exists(), f"ChromaDB not found at {DB_PATH}"
@@ -112,6 +113,7 @@ class TestDataQuality:
 # 2. RETRIEVAL ACCURACY TESTS
 # ============================================================
 
+@pytest.mark.slow
 class TestRetrievalAccuracy:
     """Test that the right parks are retrieved for queries."""
 
@@ -193,13 +195,14 @@ class TestResponseQuality:
 # 4. PERFORMANCE TESTS
 # ============================================================
 
+@pytest.mark.slow
 class TestPerformance:
     """Test response times are acceptable."""
 
     def test_retrieval_speed(self, retriever_only):
         """Retrieval should be fast (under 2 seconds)."""
         start = time.time()
-        docs = retriever_only.invoke("playground for kids")
+        retriever_only.invoke("playground for kids")
         elapsed = time.time() - start
         assert elapsed < 2.0, f"Retrieval took {elapsed:.1f}s - too slow"
 
@@ -207,7 +210,7 @@ class TestPerformance:
     def test_full_chain_speed(self, rag_chain):
         """Full RAG chain should complete in reasonable time."""
         start = time.time()
-        response = rag_chain.invoke("parks with water activities")
+        rag_chain.invoke("parks with water activities")
         elapsed = time.time() - start
         # LLM inference takes time, allow up to 30 seconds
         assert elapsed < 30.0, f"Full chain took {elapsed:.1f}s - too slow"
@@ -218,6 +221,7 @@ class TestPerformance:
 # 5. EDGE CASE TESTS
 # ============================================================
 
+@pytest.mark.slow
 class TestEdgeCases:
     """Test handling of unusual inputs."""
 

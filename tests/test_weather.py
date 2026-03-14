@@ -8,7 +8,6 @@ Tests cover:
 4. Cache behavior (unit tests only - no actual API calls)
 """
 import pytest
-from unittest.mock import patch, AsyncMock
 import time
 
 import sys

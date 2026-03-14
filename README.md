@@ -193,6 +193,15 @@ ParkScout is a semi-finalist in the **AWS #10KAIdeas 2025** competition in the *
 
 ---
 
+## Built With
+
+This project was built using AI-assisted development tools:
+
+- **[Kiro](https://kiro.dev)** — Requirements-first spec generation. Kiro's EARS methodology produced 27 structured requirements and 199 implementation tasks before code was written, providing the architectural roadmap and scoping decisions for the project.
+- **[Claude Code](https://claude.ai/claude-code)** — AI pair programming for implementation. Claude Code accelerated development of the CI/CD pipeline, data models, RAG evaluation harness, API endpoints, and badge dispute system — freeing time to focus on domain-specific problems like park data structure and Parent Score design.
+
+---
+
 ## License
 
 This project was built for the AWS AIdeas 2025 competition.

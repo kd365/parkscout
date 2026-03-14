@@ -9,7 +9,6 @@ User data schema supporting:
 - Conversation sessions
 """
 from datetime import datetime
-from typing import Optional, List
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, DateTime,
     ForeignKey, Text, JSON, create_engine, CheckConstraint

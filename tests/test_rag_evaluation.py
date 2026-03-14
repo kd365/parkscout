@@ -197,7 +197,7 @@ class TestEvaluationWithMocks:
     def test_relevance_mock(self, case):
         """Each test case should get a relevance score via mocked judge."""
         mock_response = _make_mock_llm_response(0.90)
-        with patch("api.services.rag_evaluator._get_judge_llm") as mock_llm:
+        with patch("api.services.rag_evaluator._get_judge_llm"):
             mock_chain = MagicMock()
             mock_chain.invoke.return_value = mock_response
             with patch("api.services.rag_evaluator.ChatPromptTemplate") as mock_prompt:
@@ -211,7 +211,7 @@ class TestEvaluationWithMocks:
     def test_context_precision_mock(self, case):
         """Each test case should get a context precision score via mocked judge."""
         mock_response = _make_mock_llm_response(0.80)
-        with patch("api.services.rag_evaluator._get_judge_llm") as mock_llm:
+        with patch("api.services.rag_evaluator._get_judge_llm"):
             mock_chain = MagicMock()
             mock_chain.invoke.return_value = mock_response
             with patch("api.services.rag_evaluator.ChatPromptTemplate") as mock_prompt:
@@ -228,7 +228,7 @@ class TestEvaluationWithMocks:
         mock_chain = MagicMock()
         mock_chain.invoke.return_value = mock_response
 
-        with patch("api.services.rag_evaluator._get_judge_llm") as mock_llm:
+        with patch("api.services.rag_evaluator._get_judge_llm"):
             with patch("api.services.rag_evaluator.ChatPromptTemplate") as mock_prompt:
                 mock_prompt.from_messages.return_value.__or__ = MagicMock(
                     return_value=mock_chain
@@ -305,7 +305,7 @@ class TestLiveEvaluation:
         avg_relevance = sum(r["relevance"] for r in all_results) / n
         avg_context_precision = sum(r["context_precision"] for r in all_results) / n
 
-        print(f"\n--- RAG Evaluation Summary ---")
+        print("\n--- RAG Evaluation Summary ---")
         print(f"  Faithfulness avg:      {avg_faithfulness:.3f} (threshold: 0.7)")
         print(f"  Relevance avg:         {avg_relevance:.3f} (threshold: 0.7)")
         print(f"  Context Precision avg: {avg_context_precision:.3f} (threshold: 0.6)")
@@ -335,7 +335,7 @@ class TestEvaluationCaching:
         mock_chain = MagicMock()
         mock_chain.invoke.return_value = mock_response
 
-        with patch("api.services.rag_evaluator._get_judge_llm") as mock_llm:
+        with patch("api.services.rag_evaluator._get_judge_llm"):
             with patch("api.services.rag_evaluator.ChatPromptTemplate") as mock_prompt:
                 mock_prompt.from_messages.return_value.__or__ = MagicMock(
                     return_value=mock_chain
@@ -353,7 +353,7 @@ class TestEvaluationCaching:
         mock_chain = MagicMock()
         mock_chain.invoke.return_value = mock_response
 
-        with patch("api.services.rag_evaluator._get_judge_llm") as mock_llm:
+        with patch("api.services.rag_evaluator._get_judge_llm"):
             with patch("api.services.rag_evaluator.ChatPromptTemplate") as mock_prompt:
                 mock_prompt.from_messages.return_value.__or__ = MagicMock(
                     return_value=mock_chain
